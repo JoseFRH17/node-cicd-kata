@@ -1,5 +1,9 @@
 # Node CI/CD Kata
 
+[Versión de Node 24.21.0](https://nodejs.org/es/download)
+
+Versión de Npm -> 12.0.2 (npm install -g npm@latest)
+
 Versión en Node.js y TypeScript de la práctica
 [Python CI/CD Kata](https://github.com/aran159/python-cicd-kata). El servicio simula la
 tirada de un dado y sirve como base para practicar integración y despliegue continuos con
