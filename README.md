@@ -36,6 +36,43 @@ Dependencias de desarrollo:
 - `prettier` y `eslint-config-prettier`: formateo del código.
 - `husky`: hook de pre-commit para ejecutar las comprobaciones de calidad.
 
+## TypeScript: tipos sobre JavaScript
+
+TypeScript permite indicar qué tipos de datos reciben y devuelven las funciones. Estos tipos se
+comprueban durante el desarrollo y se eliminan al compilar a JavaScript.
+
+JavaScript:
+
+```js
+function add(a, b) {
+  return a + b;
+}
+
+add(2, '3'); // Puede producir "23" sin avisar antes de ejecutarse.
+```
+
+TypeScript:
+
+```ts
+function add(a: number, b: number): number {
+  return a + b;
+}
+
+add(2, 3); // Correcto.
+add(2, '3'); // Error de TypeScript antes de ejecutar el programa.
+```
+
+En este proyecto, la función `getDiceRoll` también declara sus tipos:
+
+```ts
+export function getDiceRoll(random: () => number = Math.random): number {
+  return Math.floor(random() * 6) + 1;
+}
+```
+
+El parámetro `random` debe ser una función que no reciba argumentos y devuelva un número, y la
+función `getDiceRoll` siempre devuelve un número.
+
 ## Primeros pasos
 
 ```bash
