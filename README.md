@@ -5,19 +5,6 @@ Versión en Node.js y TypeScript de la práctica
 tirada de un dado y sirve como base para practicar integración y despliegue continuos con
 GitHub Actions, Docker Hub y Render.
 
-## Equivalencias con la kata original
-
-| Python                  | Node.js + TypeScript              |
-| ----------------------- | --------------------------------- |
-| `uv` y `pyproject.toml` | npm y `package.json`              |
-| FastAPI + Uvicorn       | Fastify                           |
-| Swagger de FastAPI      | OpenAPI + Swagger UI para Fastify |
-| Ruff linter             | ESLint                            |
-| Ruff formatter          | Prettier                          |
-| Pyright                 | TypeScript en modo estricto       |
-| pytest                  | Vitest                            |
-| pre-commit              | Husky                             |
-
 ## Prerrequisitos
 
 - [Node.js 24 o superior](https://nodejs.org/es/download). La versión recomendada está
