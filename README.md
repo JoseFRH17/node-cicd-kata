@@ -40,10 +40,30 @@ Dependencias de desarrollo:
 
 ```bash
 npm install
+```
+
+## Servidor de desarrollo
+
+Inicia el servidor con recarga automática al modificar los archivos fuente:
+
+```bash
 npm run dev
 ```
 
-El servidor escucha en `http://localhost:10000`. Rutas disponibles:
+Por defecto, el servidor escucha en `http://localhost:10000`. También puedes cambiar el puerto
+con la variable de entorno `PORT`:
+
+```bash
+PORT=3000 npm run dev
+```
+
+En PowerShell:
+
+```powershell
+$env:PORT=3000; npm run dev
+```
+
+Para detenerlo, pulsa `Ctrl+C`. Con el puerto por defecto, las rutas disponibles son:
 
 - `http://localhost:10000/`: redirige a Swagger UI.
 - `http://localhost:10000/docs`: documentación interactiva de la API.
