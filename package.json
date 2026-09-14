@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
     "prepare": "husky"
   },
   "dependencies": {
@@ -37,6 +37,5 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.42.0",
     "vitest": "^3.2.4"
-  },
-  "packageManager": "pnpm@11.19.0"
+  }
 }

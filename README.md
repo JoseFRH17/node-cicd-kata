@@ -1,9 +1,5 @@
 # Node CI/CD Kata
 
-[Versión de Node 24.21.0](https://nodejs.org/es/download)
-
-Versión de Npm -> 12.0.2 (npm install -g npm@latest)
-
 Versión en Node.js y TypeScript de la práctica
 [Python CI/CD Kata](https://github.com/aran159/python-cicd-kata). El servicio simula la
 tirada de un dado y sirve como base para practicar integración y despliegue continuos con
@@ -13,7 +9,7 @@ GitHub Actions, Docker Hub y Render.
 
 | Python                  | Node.js + TypeScript              |
 | ----------------------- | --------------------------------- |
-| `uv` y `pyproject.toml` | pnpm y `package.json`             |
+| `uv` y `pyproject.toml` | npm y `package.json`              |
 | FastAPI + Uvicorn       | Fastify                           |
 | Swagger de FastAPI      | OpenAPI + Swagger UI para Fastify |
 | Ruff linter             | ESLint                            |
@@ -22,19 +18,42 @@ GitHub Actions, Docker Hub y Render.
 | pytest                  | Vitest                            |
 | pre-commit              | Husky                             |
 
-## Requisitos
+## Prerrequisitos
 
-- Node.js 24
-- [pnpm](https://pnpm.io/installation) mediante Corepack
-- Docker para construir y ejecutar la imagen
-- Cuentas de Docker Hub y Render para el despliegue
+- [Node.js 24 o superior](https://nodejs.org/es/download). La versión recomendada está
+  indicada en `.nvmrc`.
+- npm, incluido con Node.js.
+- Docker, únicamente si se quiere construir y ejecutar la imagen localmente.
+- Git, para trabajar con el repositorio y ejecutar el hook de pre-commit de Husky.
+- Cuentas de Docker Hub y Render, únicamente para realizar el despliegue.
+
+## Dependencias
+
+Las dependencias se declaran en `package.json`, quedan fijadas en `package-lock.json` y se
+instalan con npm:
+
+```bash
+npm install
+```
+
+Dependencias de ejecución:
+
+- `fastify`: servidor HTTP.
+- `@fastify/swagger` y `@fastify/swagger-ui`: documentación OpenAPI y Swagger UI.
+
+Dependencias de desarrollo:
+
+- `typescript`, `tsx` y `@types/node`: desarrollo y compilación en TypeScript.
+- `vitest`: ejecución de tests.
+- `eslint` y `typescript-eslint`: análisis estático y linting.
+- `prettier` y `eslint-config-prettier`: formateo del código.
+- `husky`: hook de pre-commit para ejecutar las comprobaciones de calidad.
 
 ## Primeros pasos
 
 ```bash
-corepack enable
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 El servidor escucha en `http://localhost:10000`. Rutas disponibles:
@@ -43,24 +62,21 @@ El servidor escucha en `http://localhost:10000`. Rutas disponibles:
 - `http://localhost:10000/docs`: documentación interactiva de la API.
 - `http://localhost:10000/dice/roll`: devuelve un entero aleatorio entre 1 y 6.
 
-En PowerShell, si Corepack necesita permisos de administrador, se puede ejecutar pnpm con
-`corepack pnpm <comando>`.
-
 ## Calidad de código
 
 ```bash
-pnpm lint          # ESLint
-pnpm lint:fix      # ESLint con correcciones automáticas
-pnpm format        # aplicar Prettier
-pnpm format:check  # comprobar Prettier sin modificar archivos
-pnpm typecheck     # comprobar tipos sin compilar
-pnpm test          # ejecutar tests una vez
-pnpm build         # compilar en dist/
-pnpm check         # ejecutar todas las comprobaciones
+npm run lint          # ESLint
+npm run lint:fix      # ESLint con correcciones automáticas
+npm run format        # aplicar Prettier
+npm run format:check  # comprobar Prettier sin modificar archivos
+npm run typecheck     # comprobar tipos sin compilar
+npm test              # ejecutar tests una vez
+npm run build         # compilar en dist/
+npm run check         # ejecutar todas las comprobaciones
 ```
 
-Husky instala un hook de pre-commit durante `pnpm install` cuando la carpeta es la raíz de
-su propio repositorio Git. El hook ejecuta `pnpm check` antes de aceptar cada commit.
+Husky instala un hook de pre-commit durante `npm install` cuando la carpeta es la raíz de
+su propio repositorio Git. El hook ejecuta `npm run check` antes de aceptar cada commit.
 
 ## Docker
 
