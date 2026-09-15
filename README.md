@@ -150,11 +150,11 @@ El repositorio incluye dos workflows:
 Antes de publicar, crea el repositorio de imagen en Docker Hub y configura en
 **Settings -> Secrets and variables -> Actions**:
 
-| Tipo     | Nombre                 | Valor                                 |
-| -------- | ---------------------- | ------------------------------------- |
-| Variable | `DOCKERHUB_USERNAME`   | Usuario de Docker Hub                 |
-| Variable | `DOCKERHUB_REPOSITORY` | Nombre del repositorio de imagen      |
-| Secret   | `DOCKERHUB_TOKEN`      | Access token con permiso de escritura |
+| Tipo   | Nombre                 | Valor                                 |
+| ------ | ---------------------- | ------------------------------------- |
+| Secret | `DOCKERHUB_USERNAME`   | Usuario de Docker Hub                 |
+| Secret | `DOCKERHUB_REPOSITORY` | Nombre del repositorio de imagen      |
+| Secret | `DOCKERHUB_TOKEN`      | Access token con permiso de escritura |
 
 El workflow publica las etiquetas `latest` y el SHA corto del commit. Por ejemplo, para el commit
 `a1b2c3d4`, la imagen se publica como:
@@ -169,7 +169,7 @@ El workflow publica las etiquetas `latest` y el SHA corto del commit. Por ejempl
 1. Crea un repositorio de GitHub con el contenido de esta carpeta.
 2. Trabaja en una rama `feature/dice-plus-<n>` y abre un pull request a `main`.
 3. Configura las reglas de protección de `main` para exigir los checks `quality` y `tests`.
-4. Configura las variables y secretos anteriores.
+4. Configura los secretos anteriores.
 5. Integra el pull request; el workflow de despliegue publicará y desplegará la imagen.
 6. Entrega la URL de GitHub Actions y la URL de Swagger UI (`/docs`).
 
