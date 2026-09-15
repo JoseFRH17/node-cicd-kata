@@ -8,13 +8,13 @@ describe('getDiceRoll', () => {
       const result = getDiceRoll();
 
       expect(Number.isInteger(result)).toBe(true);
-      expect(result).toBeGreaterThanOrEqual(1);
-      expect(result).toBeLessThanOrEqual(6);
+      expect(result).toBeGreaterThanOrEqual(3);
+      expect(result).toBeLessThanOrEqual(8);
     }
   });
 
-  it('maps the boundaries to one and six', () => {
-    expect(getDiceRoll(() => 0)).toBe(1);
-    expect(getDiceRoll(() => 0.999_999)).toBe(6);
+  it('maps the boundaries to three and eight', () => {
+    expect(getDiceRoll(() => 0)).toBe(3);
+    expect(getDiceRoll(() => 0.999_999)).toBe(8);
   });
 });

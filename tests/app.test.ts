@@ -26,7 +26,7 @@ describe('HTTP API', () => {
     const response = await app.inject({ method: 'GET', url: '/dice/roll' });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json<number>()).toBeGreaterThanOrEqual(1);
-    expect(response.json<number>()).toBeLessThanOrEqual(6);
+    expect(response.json<number>()).toBeGreaterThanOrEqual(3);
+    expect(response.json<number>()).toBeLessThanOrEqual(8);
   });
 });

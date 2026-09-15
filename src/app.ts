@@ -31,8 +31,8 @@ export async function createApp(): Promise<FastifyInstance> {
         response: {
           200: {
             type: 'integer',
-            minimum: 1,
-            maximum: 6,
+            minimum: 3,
+            maximum: 8,
           },
         },
       },
