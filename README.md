@@ -119,8 +119,9 @@ npm run build         # compilar en dist/
 npm run check         # ejecutar todas las comprobaciones
 ```
 
-Husky instala un hook de pre-commit durante `npm install` cuando la carpeta es la raíz de
-su propio repositorio Git. El hook ejecuta `npm run check` antes de aceptar cada commit.
+Husky se instala durante `npm install` mediante el script `prepare`. El repositorio incluye el
+comando `npm run check`, que reúne las comprobaciones de lint, formato, tipos y tests. El hook de
+`pre-commit` se puede configurar como parte del ejercicio.
 
 ## Docker
 
