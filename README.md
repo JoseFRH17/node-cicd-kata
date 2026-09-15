@@ -142,23 +142,27 @@ curl http://localhost:10000/dice/roll
 
 El repositorio incluye dos workflows:
 
-- `.github/workflows/code-safety.yml`: en cada pull request a `main`, ejecuta lint,
-  formato, tipos, tests y build.
-- `.github/workflows/deploy.yml`: al integrar en `main`, publica las etiquetas del commit
-  y `latest` en Docker Hub y activa el deploy hook de Render.
+- `.github/workflows/code-quality.yml`: en cada pull request a `main`, ejecuta las
+  comprobaciones de calidad.
+- `.github/workflows/docker-publish.yml`: en cada push a `main`, construye la imagen Docker y
+  la publica en Docker Hub.
 
-Configura en **Settings → Secrets and variables → Actions**:
+Antes de publicar, crea el repositorio de imagen en Docker Hub y configura en
+**Settings -> Secrets and variables -> Actions**:
 
-| Tipo     | Nombre                 | Valor                            |
-| -------- | ---------------------- | -------------------------------- |
-| Variable | `DOCKERHUB_USERNAME`   | Usuario de Docker Hub            |
-| Variable | `DOCKERHUB_REPOSITORY` | Nombre del repositorio de imagen |
-| Secret   | `DOCKERHUB_TOKEN`      | Token de acceso de Docker Hub    |
-| Secret   | `DEPLOY_WEBHOOK_URL`   | Deploy hook generado por Render  |
+| Tipo     | Nombre                 | Valor                                 |
+| -------- | ---------------------- | ------------------------------------- |
+| Variable | `DOCKERHUB_USERNAME`   | Usuario de Docker Hub                 |
+| Variable | `DOCKERHUB_REPOSITORY` | Nombre del repositorio de imagen      |
+| Secret   | `DOCKERHUB_TOKEN`      | Access token con permiso de escritura |
 
-En Render, crea un Web Service a partir de una imagen existente y usa inicialmente
-`docker.io/<usuario>/<repositorio>:latest`. El workflow enviará después la etiqueta inmutable
-del commit mediante el parámetro `imgURL`.
+El workflow publica las etiquetas `latest` y el SHA corto del commit. Por ejemplo, para el commit
+`a1b2c3d4`, la imagen se publica como:
+
+```text
+<usuario>/<repositorio>:latest
+<usuario>/<repositorio>:a1b2c3d
+```
 
 ## Flujo sugerido para la práctica
 

@@ -12,7 +12,7 @@ FROM node:24-alpine AS production
 ENV NODE_ENV=production
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 COPY --from=build /app/dist ./dist
 
 EXPOSE 10000
