@@ -104,7 +104,7 @@ Para detenerlo, pulsa `Ctrl+C`. Con el puerto por defecto, las rutas disponibles
 
 - `http://localhost:10000/`: redirige a Swagger UI.
 - `http://localhost:10000/docs`: documentación interactiva de la API.
-- `http://localhost:10000/dice/roll`: devuelve un entero aleatorio entre 1 y 6.
+- `http://localhost:10000/dice/roll`: devuelve un entero aleatorio entre 3 y 8.
 
 ## Calidad de código
 
@@ -140,25 +140,13 @@ curl http://localhost:10000/dice/roll
 
 ## GitHub Actions
 
-El repositorio incluye dos workflows:
+El repositorio incluye un workflow de calidad:
 
-- `.github/workflows/code-safety.yml`: en cada pull request a `main`, ejecuta lint,
-  formato, tipos, tests y build.
-- `.github/workflows/deploy.yml`: al integrar en `main`, publica las etiquetas del commit
-  y `latest` en Docker Hub y activa el deploy hook de Render.
+- `.github/workflows/code-quality.yml`: en cada pull request a `main`, instala las dependencias
+  con `npm ci` y ejecuta ESLint, comprobación de formato, TypeScript, tests y build.
 
-Configura en **Settings → Secrets and variables → Actions**:
-
-| Tipo     | Nombre                 | Valor                            |
-| -------- | ---------------------- | -------------------------------- |
-| Variable | `DOCKERHUB_USERNAME`   | Usuario de Docker Hub            |
-| Variable | `DOCKERHUB_REPOSITORY` | Nombre del repositorio de imagen |
-| Secret   | `DOCKERHUB_TOKEN`      | Token de acceso de Docker Hub    |
-| Secret   | `DEPLOY_WEBHOOK_URL`   | Deploy hook generado por Render  |
-
-En Render, crea un Web Service a partir de una imagen existente y usa inicialmente
-`docker.io/<usuario>/<repositorio>:latest`. El workflow enviará después la etiqueta inmutable
-del commit mediante el parámetro `imgURL`.
+El workflow cancela una ejecución anterior de la misma pull request cuando se suben nuevos
+cambios y solo necesita permisos de lectura del contenido del repositorio.
 
 ## Flujo sugerido para la práctica
 
