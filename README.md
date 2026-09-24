@@ -3,7 +3,7 @@
 Versión en Node.js y TypeScript de la práctica
 [Python CI/CD Kata](https://github.com/aran159/python-cicd-kata). El servicio simula la
 tirada de un dado y sirve como base para practicar integración y despliegue continuos con
-GitHub Actions y Docker Hub.
+GitHub Actions y Docker Hub. 
 
 ## Prerrequisitos
 
