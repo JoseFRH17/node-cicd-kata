@@ -10,9 +10,9 @@ GitHub Actions y Docker Hub.
 - [Node.js 24 o superior](https://nodejs.org/es/download). La versión recomendada está
   indicada en `.nvmrc`.
 - npm, incluido con Node.js.
-- Docker, únicamente si se quiere construir y ejecutar la imagen localmente.
+- Docker, únicamente para la segunda sesión o si se quiere probar la imagen localmente.
 - Git, para trabajar con el repositorio.
-- Una cuenta de Docker Hub, únicamente para completar el ejercicio de publicación.
+- Una cuenta de Docker Hub, únicamente para la segunda sesión de publicación.
 
 ## Dependencias
 
@@ -122,9 +122,41 @@ npm run check         # ejecutar todas las comprobaciones
 El repositorio incluye el comando `npm run check`, que reúne las comprobaciones de lint, formato,
 tipos y tests.
 
-## Docker
+## Ejercicio
 
-Cuando `npm run check` finalice correctamente, construir y ejecutar la imagen:
+### Sesión 1: integración continua (CI)
+
+Trabajad en equipos de al menos dos personas. Una persona hace un fork del repositorio y añade
+al resto como colaboradores. Cada integrante crea una rama `features/dice-plus-<i>`, con un valor
+asignado de `i` entre 1 y 5. En esa rama, el dado debe devolver su tirada habitual (`X`, entre
+1 y 6) más `i`.
+
+1. Implementa el cambio en tu rama y actualiza los tests para cubrir el nuevo comportamiento,
+   tanto en la función como en la API. Corrige los problemas de calidad intencionados hasta que
+   `npm run check` finalice correctamente.
+2. Configura un hook `pre-commit` con Husky que ejecute `npm run check`. La instalación de
+   dependencias ejecuta el script `prepare` de `package.json` para activar Husky, pero **no crea
+   el hook**: hay que crear y versionar el fichero `.husky/pre-commit` con este contenido:
+
+   ```sh
+   npm run check
+   ```
+
+   Cada integrante debe ejecutar `npm install` en su clon para activar los hooks locales. Los
+   hooks no sustituyen a los checks de CI: pueden faltar o evitarse en una máquina.
+
+3. Crea un workflow de GitHub Actions que ejecute lint, formato, tipos, tests y build en cada
+   pull request a `main`.
+4. Protege `main` para exigir que el check del workflow pase antes de integrar cambios.
+
+### Sesión 2: CD (publicación de la imagen)
+
+1. Crea un workflow que construya la imagen Docker y la publique en Docker Hub tras cada push a
+   `main`.
+2. Configura en GitHub Actions los secretos necesarios para publicar la imagen sin exponer las
+   credenciales en el repositorio.
+
+Para probar la imagen localmente, una vez que `npm run check` finalice correctamente:
 
 ```bash
 docker build -t <usuario>/<servicio>:latest .
@@ -137,22 +169,8 @@ Comprobar el servicio:
 curl http://localhost:10000/dice/roll
 ```
 
-## Ejercicio
-
-1. Corrige los problemas de calidad intencionados y consigue que `npm run check` finalice
-   correctamente.
-2. Configura un hook `pre-commit` con Husky que ejecute las comprobaciones de calidad.
-3. Crea un workflow de GitHub Actions que ejecute lint, formato, tipos, tests y build en cada
-   pull request a `main`.
-4. Protege `main` para exigir el check del workflow antes de integrar cambios.
-5. Crea un workflow que construya la imagen Docker y la publique en Docker Hub tras cada push a
-   `main`.
-6. Configura en GitHub Actions los secretos necesarios para publicar la imagen sin exponer las
-   credenciales en el repositorio.
-
 ## Desarrollo del ejercicio
 
-La función de dominio está aislada en `src/application/get-dice-roll.ts`, por lo que se puede
-ampliar sin acoplarla a HTTP. Una continuación natural de la kata consiste en aceptar el
-número de caras o el número de dados, añadir los tests primero y completar el cambio mediante
-un pull request.
+Como extensión opcional, puedes ampliar la función de dominio aislada en
+`src/application/get-dice-roll.ts` para aceptar el número de caras o de dados sin acoplarla a
+HTTP. Cubre cualquier cambio adicional con tests y complétalo mediante un pull request.
