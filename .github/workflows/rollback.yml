@@ -1,0 +1,42 @@
+name: Roll back Render image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Docker Hub tag to restore (for example sha-a1b2c3d)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Redeploy selected image on Render
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate input and trigger Render rollback
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          if [[ ! "$IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]] || [[ "$IMAGE_TAG" == "latest" ]]; then
+            echo "::error::Use an existing Docker tag other than latest."
+            exit 1
+          fi
+
+          if [[ -z "$DOCKERHUB_USERNAME" || -z "$DOCKERHUB_REPOSITORY" || -z "$RENDER_DEPLOY_HOOK_URL" ]]; then
+            echo "::error::Configure the Docker Hub and Render Actions secrets first."
+            exit 1
+          fi
+
+          image_url="docker.io/${DOCKERHUB_USERNAME}/${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
+          echo "Requesting Render to deploy ${image_url}."
+          curl --fail-with-body --silent --show-error \
+            --get \
+            --data-urlencode "imgURL=${image_url}" \
+            "$RENDER_DEPLOY_HOOK_URL"

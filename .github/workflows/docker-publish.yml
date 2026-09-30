@@ -48,3 +48,14 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Trigger Render deploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::error::Set the RENDER_DEPLOY_HOOK_URL Actions secret."
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error \
+            --request POST "$RENDER_DEPLOY_HOOK_URL"

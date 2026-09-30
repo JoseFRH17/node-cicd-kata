@@ -140,28 +140,36 @@ curl http://localhost:10000/dice/roll
 
 ## GitHub Actions
 
-El repositorio incluye dos workflows:
+El repositorio incluye tres workflows:
 
 - `.github/workflows/code-quality.yml`: en cada pull request a `main`, ejecuta las
   comprobaciones de calidad.
 - `.github/workflows/docker-publish.yml`: en cada push a `main`, construye la imagen Docker y
   la publica en Docker Hub.
+- `.github/workflows/rollback.yml`: permite solicitar manualmente a Render el despliegue de una
+  etiqueta anterior ya publicada.
 
 Antes de publicar, crea el repositorio de imagen en Docker Hub y configura en
 **Settings -> Secrets and variables -> Actions**:
 
-| Tipo   | Nombre                 | Valor                                 |
-| ------ | ---------------------- | ------------------------------------- |
-| Secret | `DOCKERHUB_USERNAME`   | Usuario de Docker Hub                 |
-| Secret | `DOCKERHUB_REPOSITORY` | Nombre del repositorio de imagen      |
-| Secret | `DOCKERHUB_TOKEN`      | Access token con permiso de escritura |
+| Tipo   | Nombre                   | Valor                                 |
+| ------ | ------------------------ | ------------------------------------- |
+| Secret | `DOCKERHUB_USERNAME`     | Usuario de Docker Hub                 |
+| Secret | `DOCKERHUB_REPOSITORY`   | Nombre del repositorio de imagen      |
+| Secret | `DOCKERHUB_TOKEN`        | Access token con permiso de escritura |
+| Secret | `RENDER_DEPLOY_HOOK_URL` | URL secreta del Deploy Hook de Render |
 
-El workflow publica las etiquetas `latest` y el SHA corto del commit. Por ejemplo, para el commit
+En Render, configura el servicio con la imagen `docker.io/<usuario>/<repositorio>:latest` y copia
+su Deploy Hook desde **Settings**. Guárdalo como `RENDER_DEPLOY_HOOK_URL` en GitHub Actions.
+Después de publicar la imagen, el workflow envía una petición al hook para que Render descargue y
+despliegue la nueva versión. Trata la URL del hook como un secreto.
+
+El workflow publica las etiquetas `latest` y `sha-<SHA corto>`. Por ejemplo, para el commit
 `a1b2c3d4`, la imagen se publica como:
 
 ```text
 <usuario>/<repositorio>:latest
-<usuario>/<repositorio>:a1b2c3d
+<usuario>/<repositorio>:sha-a1b2c3d
 ```
 
 ## Flujo sugerido para la práctica
@@ -170,8 +178,16 @@ El workflow publica las etiquetas `latest` y el SHA corto del commit. Por ejempl
 2. Trabaja en una rama `feature/dice-plus-<n>` y abre un pull request a `main`.
 3. Configura las reglas de protección de `main` para exigir los checks `quality` y `tests`.
 4. Configura los secretos anteriores.
-5. Integra el pull request; el workflow de despliegue publicará y desplegará la imagen.
+5. Integra el pull request; el workflow de despliegue publicará la imagen y activará Render.
 6. Entrega la URL de GitHub Actions y la URL de Swagger UI (`/docs`).
+
+### Rollback
+
+Para volver a una imagen anterior sin reconstruirla, abre **Actions -> Roll back Render image ->
+Run workflow** e introduce una etiqueta publicada, por ejemplo `sha-a1b2c3d`. El workflow valida
+la etiqueta y pide a Render desplegar esa imagen concreta. Comprueba en Render que el despliegue
+termina correctamente. La etiqueta `latest` no se admite para evitar seleccionar accidentalmente
+la versión actual.
 
 ## Desarrollo del ejercicio
 
