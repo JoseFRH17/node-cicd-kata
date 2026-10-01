@@ -1,37 +1,80 @@
-name: Publish Docker image
+name: Publish and deploy Docker image
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      simulate_incident:
+        description: Build and deploy an intentionally broken demo image
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 concurrency:
-  group: docker-publish-main
-  cancel-in-progress: true
+  group: render-deployment
+  cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Build and publish image
+  quality:
+    name: Quality checks
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repository
+      - name: Check out the commit
         uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run all quality checks
+        run: npm run check && npm run build
+
+  publish-and-deploy:
+    name: Publish, deploy and verify
+    needs: quality
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      BASE_URL: ${{ vars.BASE_URL }}
+      SIMULATE_INCIDENT: ${{ inputs.simulate_incident && '1' || '0' }}
+      IMAGE_SUFFIX: ${{ inputs.simulate_incident && '-incident' || '' }}
+
+    steps:
+      - name: Check out the commit
+        uses: actions/checkout@v7
+
+      - name: Check deployment configuration
+        shell: bash
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for name in DOCKERHUB_USERNAME DOCKERHUB_REPOSITORY DOCKERHUB_TOKEN RENDER_DEPLOY_HOOK_URL BASE_URL; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Configure the $name Actions secret or variable."
+              exit 1
+            fi
+          done
+          if [[ "$BASE_URL" == */ ]]; then
+            echo "::error::BASE_URL must not end with a slash."
+            exit 1
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
-
-      - name: Generate image metadata
-        id: metadata
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}
-          tags: |
-            type=raw,value=latest
-            type=sha,format=short
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v4
@@ -39,23 +82,62 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and publish the image
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:sha-${{ github.sha }}${{ env.IMAGE_SUFFIX }}
+          build-args: |
+            APP_VERSION=${{ github.sha }}${{ env.IMAGE_SUFFIX }}
+            DEMO_INCIDENT=${{ env.SIMULATE_INCIDENT }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Trigger Render deploy
+      - name: Request Render to deploy this image
+        shell: bash
         env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          EXPECTED_VERSION: ${{ github.sha }}${{ env.IMAGE_SUFFIX }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "::error::Set the RENDER_DEPLOY_HOOK_URL Actions secret."
+          set -euo pipefail
+          image_url="docker.io/${DOCKERHUB_USERNAME}/${DOCKERHUB_REPOSITORY}:sha-${EXPECTED_VERSION}"
+          curl --fail-with-body --silent --show-error \
+            --get \
+            --data-urlencode "imgURL=${image_url}" \
+            "$RENDER_DEPLOY_HOOK_URL"
+
+      - name: Wait for the expected version and verify the service
+        shell: bash
+        env:
+          EXPECTED_VERSION: ${{ github.sha }}${{ env.IMAGE_SUFFIX }}
+        run: |
+          set -euo pipefail
+          matched=false
+          for attempt in $(seq 1 30); do
+            if response=$(curl --fail --silent --show-error "$BASE_URL/version" 2>/dev/null); then
+              actual_version=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).version)' "$response" 2>/dev/null || true)
+              if [[ "$actual_version" == "$EXPECTED_VERSION" ]]; then
+                matched=true
+                break
+              fi
+            fi
+            echo "Waiting for $EXPECTED_VERSION on Render (attempt $attempt/30)."
+            sleep 10
+          done
+          if [[ "$matched" != true ]]; then
+            echo "::error::Render did not start the expected image in time."
             exit 1
           fi
-          curl --fail-with-body --silent --show-error \
-            --request POST "$RENDER_DEPLOY_HOOK_URL"
+
+          curl --fail --silent --show-error "$BASE_URL/health"
+          roll=$(curl --fail --silent --show-error "$BASE_URL/dice/roll")
+          if ! node -e 'const roll = Number(process.argv[1]); if (!Number.isInteger(roll) || roll < 1 || roll > 6) process.exit(1)' "$roll"; then
+            echo "::error::The smoke test detected a dice response outside the 1-6 contract."
+            exit 1
+          fi
+          echo "Verified version $EXPECTED_VERSION, health and dice-roll contract."

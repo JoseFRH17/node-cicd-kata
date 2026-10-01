@@ -10,6 +10,10 @@ RUN npm run build
 FROM node:24-alpine AS production
 
 ENV NODE_ENV=production
+ARG APP_VERSION=dev
+ARG DEMO_INCIDENT=0
+ENV APP_VERSION=${APP_VERSION}
+ENV DEMO_INCIDENT=${DEMO_INCIDENT}
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts

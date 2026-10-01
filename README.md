@@ -1,197 +1,98 @@
-# Node CI/CD Kata
+# Node CI/CD Kata · Solución
 
-Versión en Node.js y TypeScript de la práctica
-[Python CI/CD Kata](https://github.com/aran159/python-cicd-kata). El servicio simula la
-tirada de un dado y sirve como base para practicar integración y despliegue continuos con
-GitHub Actions, Docker Hub y Render.
+Solución de referencia de la práctica de CI/CD con Node.js 24, TypeScript, GitHub Actions, Docker Hub y Render. El servicio ofrece una API pequeña para seguir un cambio desde el commit hasta una URL pública.
 
-## Prerrequisitos
+## API
 
-- [Node.js 24 o superior](https://nodejs.org/es/download). La versión recomendada está
-  indicada en `.nvmrc`.
-- npm, incluido con Node.js.
-- Docker, únicamente si se quiere construir y ejecutar la imagen localmente.
-- Git, para trabajar con el repositorio y ejecutar el hook de pre-commit de Husky.
-- Cuentas de Docker Hub y Render, únicamente para realizar el despliegue.
+- `/` redirige a Swagger UI.
+- `/docs` muestra la API.
+- `/dice/roll` devuelve un entero entre 1 y 6.
+- `/version` devuelve el valor `APP_VERSION` incorporado a la imagen.
+- `/health` devuelve `{"status":"ok"}` cuando la aplicación responde.
 
-## Dependencias
+`/health` comprueba disponibilidad. `/version` identifica el artefacto que responde. El smoke test comprueba el contrato del dado; una señal no sustituye a las otras.
 
-Las dependencias se declaran en `package.json`, quedan fijadas en `package-lock.json` y se
-instalan con npm:
+## Requisitos y ejecución local
 
-```bash
-npm install
-```
-
-Dependencias de ejecución:
-
-- `fastify`: servidor HTTP.
-- `@fastify/swagger` y `@fastify/swagger-ui`: documentación OpenAPI y Swagger UI.
-
-Dependencias de desarrollo:
-
-- `typescript`, `tsx` y `@types/node`: desarrollo y compilación en TypeScript.
-- `vitest`: ejecución de tests.
-- `eslint` y `typescript-eslint`: análisis estático y linting.
-- `prettier` y `eslint-config-prettier`: formateo del código.
-- `husky`: hook de pre-commit para ejecutar las comprobaciones de calidad.
-
-## TypeScript: tipos sobre JavaScript
-
-TypeScript permite indicar qué tipos de datos reciben y devuelven las funciones. Estos tipos se
-comprueban durante el desarrollo y se eliminan al compilar a JavaScript.
-
-JavaScript:
-
-```js
-function add(a, b) {
-  return a + b;
-}
-
-add(2, '3'); // Puede producir "23" sin avisar antes de ejecutarse.
-```
-
-TypeScript:
-
-```ts
-function add(a: number, b: number): number {
-  return a + b;
-}
-
-add(2, 3); // Correcto.
-add(2, '3'); // Error de TypeScript antes de ejecutar el programa.
-```
-
-En este proyecto, la función `getDiceRoll` también declara sus tipos:
-
-```ts
-export function getDiceRoll(random: () => number = Math.random): number {
-  return Math.floor(random() * 6) + 1;
-}
-```
-
-El parámetro `random` debe ser una función que no reciba argumentos y devuelva un número, y la
-función `getDiceRoll` siempre devuelve un número.
-
-## Primeros pasos
+- Node.js 24 o superior y npm.
+- Git para clonar y ejecutar el hook de pre-commit.
+- Docker para construir y ejecutar imágenes localmente.
+- Cuentas de Docker Hub y Render para el despliegue.
 
 ```bash
-npm install
-```
-
-## Servidor de desarrollo
-
-Inicia el servidor con recarga automática al modificar los archivos fuente:
-
-```bash
+npm ci
+npm run check
+npm run build
 npm run dev
 ```
 
-Por defecto, el servidor escucha en `http://localhost:10000`. También puedes cambiar el puerto
-con la variable de entorno `PORT`:
+El servidor escucha en `http://localhost:10000`. Para probar la imagen:
 
 ```bash
-PORT=3000 npm run dev
-```
-
-En PowerShell:
-
-```powershell
-$env:PORT=3000; npm run dev
-```
-
-Para detenerlo, pulsa `Ctrl+C`. Con el puerto por defecto, las rutas disponibles son:
-
-- `http://localhost:10000/`: redirige a Swagger UI.
-- `http://localhost:10000/docs`: documentación interactiva de la API.
-- `http://localhost:10000/dice/roll`: devuelve un entero aleatorio entre 1 y 6.
-
-## Calidad de código
-
-```bash
-npm run lint          # ESLint
-npm run lint:fix      # ESLint con correcciones automáticas
-npm run format        # aplicar Prettier
-npm run format:check  # comprobar Prettier sin modificar archivos
-npm run typecheck     # comprobar tipos sin compilar
-npm test              # ejecutar tests una vez
-npm run build         # compilar en dist/
-npm run check         # ejecutar todas las comprobaciones
-```
-
-Husky se instala durante `npm install` mediante el script `prepare`. El repositorio incluye el
-comando `npm run check`, que reúne las comprobaciones de lint, formato, tipos y tests. El hook de
-`pre-commit` se puede configurar como parte del ejercicio.
-
-## Docker
-
-Construir y ejecutar la imagen:
-
-```bash
-docker build -t <usuario>/<servicio>:latest .
-docker run --rm -p 10000:10000 <usuario>/<servicio>:latest
-```
-
-Comprobar el servicio:
-
-```bash
+docker build --build-arg APP_VERSION=local -t cicd-kata:local .
+docker run --rm -p 10000:10000 cicd-kata:local
 curl http://localhost:10000/dice/roll
+curl http://localhost:10000/version
+curl http://localhost:10000/health
 ```
 
-## GitHub Actions
+En PowerShell el servidor también puede iniciarse en otro puerto con `$env:PORT=3000; npm run dev`.
 
-El repositorio incluye tres workflows:
+## Qué hace la solución
 
-- `.github/workflows/code-quality.yml`: en cada pull request a `main`, ejecuta las
-  comprobaciones de calidad.
-- `.github/workflows/docker-publish.yml`: en cada push a `main`, construye la imagen Docker y
-  la publica en Docker Hub.
-- `.github/workflows/rollback.yml`: permite solicitar manualmente a Render el despliegue de una
-  etiqueta anterior ya publicada.
+### Integración continua
 
-Antes de publicar, crea el repositorio de imagen en Docker Hub y configura en
-**Settings -> Secrets and variables -> Actions**:
+`.github/workflows/code-quality.yml` ejecuta lint, formato, typecheck, tests y build al abrir o actualizar una pull request a `main`. El check requerido en la protección de rama se llama **Quality checks**. El hook Husky ejecuta `npm run check` antes de cada commit local; CI sigue siendo la verificación compartida.
 
-| Tipo   | Nombre                   | Valor                                 |
-| ------ | ------------------------ | ------------------------------------- |
-| Secret | `DOCKERHUB_USERNAME`     | Usuario de Docker Hub                 |
-| Secret | `DOCKERHUB_REPOSITORY`   | Nombre del repositorio de imagen      |
-| Secret | `DOCKERHUB_TOKEN`        | Access token con permiso de escritura |
-| Secret | `RENDER_DEPLOY_HOOK_URL` | URL secreta del Deploy Hook de Render |
+### Publicar y desplegar
 
-En Render, configura el servicio con la imagen `docker.io/<usuario>/<repositorio>:latest` y copia
-su Deploy Hook desde **Settings**. Guárdalo como `RENDER_DEPLOY_HOOK_URL` en GitHub Actions.
-Después de publicar la imagen, el workflow envía una petición al hook para que Render descargue y
-despliegue la nueva versión. Trata la URL del hook como un secreto.
+`.github/workflows/docker-publish.yml` vuelve a comprobar calidad y build al recibir cambios en `main`; el job de publicación depende de que esos pasos terminen bien. Construye una imagen con el SHA completo como `APP_VERSION`, publica `latest` y `sha-<SHA>`, pide a Render desplegar esa etiqueta concreta y comprueba el servicio.
 
-El workflow publica las etiquetas `latest` y `sha-<SHA corto>`. Por ejemplo, para el commit
-`a1b2c3d4`, la imagen se publica como:
+Tras el hook, Actions espera hasta cinco minutos a que `/version` coincida con el SHA esperado. Después llama a `/health` y verifica que `/dice/roll` responda un entero entre 1 y 6. Si una comprobación falla, el workflow queda en rojo y da detalles en sus logs.
 
-```text
-<usuario>/<repositorio>:latest
-<usuario>/<repositorio>:sha-a1b2c3d
-```
+### Incidente de demostración
 
-## Flujo sugerido para la práctica
+El workflow de publicación permite una ejecución manual con `simulate_incident`. Úsala únicamente en un servicio de demostración: construye una imagen separada, etiquetada `sha-<SHA>-incident`, que devuelve un valor fuera del rango esperado. No sobrescribe la imagen buena `sha-<SHA>`. La CI de código sigue pasando porque las pruebas de comportamiento se ejecutan con la configuración normal; el smoke test remoto detecta el incidente después del despliegue.
 
-1. Crea un repositorio de GitHub con el contenido de esta carpeta.
-2. Trabaja en una rama `feature/dice-plus-<n>` y abre un pull request a `main`.
-3. Configura las reglas de protección de `main` para exigir los checks `quality` y `tests`.
-4. Configura los secretos anteriores.
-5. Integra el pull request; el workflow de despliegue publicará la imagen y activará Render.
-6. Entrega la URL de GitHub Actions y la URL de Swagger UI (`/docs`).
+No configures `DEMO_INCIDENT` en las variables de entorno de Render. La opción manual incorpora el valor en la imagen, de modo que al recuperar la imagen buena desaparece también el fallo.
 
 ### Rollback
 
-Para volver a una imagen anterior sin reconstruirla, abre **Actions -> Roll back Render image ->
-Run workflow** e introduce una etiqueta publicada, por ejemplo `sha-a1b2c3d`. El workflow valida
-la etiqueta y pide a Render desplegar esa imagen concreta. Comprueba en Render que el despliegue
-termina correctamente. La etiqueta `latest` no se admite para evitar seleccionar accidentalmente
-la versión actual.
+`.github/workflows/rollback.yml` recibe el SHA completo de una imagen buena publicada, construye la etiqueta `sha-<SHA>`, pide a Render que la despliegue y espera a que `/version`, `/health` y el smoke test confirmen la recuperación. No acepta `latest`, tags arbitrarios ni la variante `-incident`.
 
-## Desarrollo del ejercicio
+El rollback solo restablece la imagen. No revierte cambios externos, como una base de datos o configuración modificada directamente en Render.
 
-La función de dominio está aislada en `src/application/get-dice-roll.ts`, por lo que se puede
-ampliar sin acoplarla a HTTP. Una continuación natural de la kata consiste en aceptar el
-número de caras o el número de dados, añadir los tests primero y completar el cambio mediante
-un pull request.
+## Configurar un repositorio de enseñanza
+
+En **Settings → Secrets and variables → Actions**, crea estos secrets:
+
+| Nombre                   | Valor                                 |
+| ------------------------ | ------------------------------------- |
+| `DOCKERHUB_USERNAME`     | Usuario de Docker Hub                 |
+| `DOCKERHUB_REPOSITORY`   | Nombre del repositorio de imagen      |
+| `DOCKERHUB_TOKEN`        | Access token con permiso de escritura |
+| `RENDER_DEPLOY_HOOK_URL` | Deploy Hook del servicio Render       |
+
+Crea la variable `BASE_URL` con la URL pública del servicio, sin `/` final. En Render, configura un Web Service basado en la imagen Docker Hub `docker.io/<usuario>/<repositorio>`. `/health` puede usarse como health-check path del servicio.
+
+El Deploy Hook es secreto. La imagen del repositorio debe ser pública, o Render debe tener permiso para descargarla. Las etiquetas usan el SHA completo para identificar cada imagen. No reutilices una etiqueta; conserva el SHA bueno antes de hacer una prueba de rollback.
+
+Configura protección de `main` para requerir `Quality checks`. `solved` puede usarse como rama predeterminada de un repositorio de demostración, o puede copiarse como contenido inicial de un fork de enseñanza. GitHub solo ofrece el botón manual de un workflow `workflow_dispatch` cuando ese workflow existe en la rama predeterminada.
+
+## Recorrido sugerido
+
+1. Partir de `main` para que los alumnos añadan `version`, `health`, seguimiento de SHA y smoke test.
+2. Construir y probar la imagen localmente; publicarla en Docker Hub y crear el servicio en Render.
+3. Completar el flujo de GitHub Actions y observar la URL, el SHA y la etiqueta asociada.
+4. Guardar un SHA bueno, lanzar `simulate_incident` en el servicio de demostración y comprobar que falla el smoke test.
+5. Ejecutar **Roll back Render image** con el SHA bueno y confirmar las tres comprobaciones de recuperación.
+
+Si se continúa desde una kata anterior que cambia la tirada a `X + i`, hay que adaptar el schema, los tests y el smoke test al contrato elegido. Esta solución completa usa el rango 1–6.
+
+## Resolución de problemas
+
+- Un 404 en `/version` o `/health` suele indicar que Render aún sirve una imagen anterior.
+- Si el hook termina bien pero `/version` no cambia, comprueba que la solicitud incluye `imgURL` con `sha-<SHA>`.
+- Si `BASE_URL` está vacío o acaba en `/`, el workflow se detiene antes de publicar.
+- Si la espera de versión agota el tiempo, consulta el deploy en Render y los logs antes de repetirlo.
+- Si el smoke test falla, conserva el tag desplegado y usa el SHA bueno para recuperar.

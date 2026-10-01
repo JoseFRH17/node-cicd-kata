@@ -3,40 +3,77 @@ name: Roll back Render image
 on:
   workflow_dispatch:
     inputs:
-      image_tag:
-        description: Docker Hub tag to restore (for example sha-a1b2c3d)
+      image_sha:
+        description: Full 40-character SHA of the known-good image
         required: true
         type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: render-deployment
+  cancel-in-progress: false
+
 jobs:
   rollback:
-    name: Redeploy selected image on Render
+    name: Redeploy and verify known-good image
     runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      BASE_URL: ${{ vars.BASE_URL }}
+      IMAGE_SHA: ${{ inputs.image_sha }}
 
     steps:
-      - name: Validate input and trigger Render rollback
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-          IMAGE_TAG: ${{ inputs.image_tag }}
+      - name: Validate input and deployment configuration
+        shell: bash
         run: |
-          if [[ ! "$IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]] || [[ "$IMAGE_TAG" == "latest" ]]; then
-            echo "::error::Use an existing Docker tag other than latest."
+          set -euo pipefail
+          if [[ ! "$IMAGE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Enter the full 40-character SHA of a previously published image."
             exit 1
           fi
+          for name in DOCKERHUB_USERNAME DOCKERHUB_REPOSITORY RENDER_DEPLOY_HOOK_URL BASE_URL; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Configure the $name Actions secret or variable."
+              exit 1
+            fi
+          done
 
-          if [[ -z "$DOCKERHUB_USERNAME" || -z "$DOCKERHUB_REPOSITORY" || -z "$RENDER_DEPLOY_HOOK_URL" ]]; then
-            echo "::error::Configure the Docker Hub and Render Actions secrets first."
-            exit 1
-          fi
-
-          image_url="docker.io/${DOCKERHUB_USERNAME}/${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
-          echo "Requesting Render to deploy ${image_url}."
+      - name: Request Render to deploy the known-good image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_url="docker.io/${DOCKERHUB_USERNAME}/${DOCKERHUB_REPOSITORY}:sha-${IMAGE_SHA}"
           curl --fail-with-body --silent --show-error \
             --get \
             --data-urlencode "imgURL=${image_url}" \
             "$RENDER_DEPLOY_HOOK_URL"
+
+      - name: Wait for the restored version and verify the service
+        shell: bash
+        run: |
+          set -euo pipefail
+          matched=false
+          for attempt in $(seq 1 30); do
+            if response=$(curl --fail --silent --show-error "$BASE_URL/version" 2>/dev/null); then
+              actual_version=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).version)' "$response" 2>/dev/null || true)
+              if [[ "$actual_version" == "$IMAGE_SHA" ]]; then
+                matched=true
+                break
+              fi
+            fi
+            echo "Waiting for $IMAGE_SHA on Render (attempt $attempt/30)."
+            sleep 10
+          done
+          if [[ "$matched" != true ]]; then
+            echo "::error::Render did not restore the requested image in time."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error "$BASE_URL/health"
+          roll=$(curl --fail --silent --show-error "$BASE_URL/dice/roll")
+          node -e 'const roll = Number(process.argv[1]); if (!Number.isInteger(roll) || roll < 1 || roll > 6) process.exit(1)' "$roll"
+          echo "Restored $IMAGE_SHA and verified health and dice-roll contract."

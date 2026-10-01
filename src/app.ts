@@ -4,7 +4,13 @@ import Fastify, { type FastifyInstance } from 'fastify';
 
 import { getDiceRoll } from './application/get-dice-roll.js';
 
-export async function createApp(): Promise<FastifyInstance> {
+interface AppOptions {
+  simulateIncident?: boolean;
+}
+
+export async function createApp({
+  simulateIncident = process.env.DEMO_INCIDENT === '1',
+}: AppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: true });
 
   await app.register(swagger, {
@@ -37,7 +43,44 @@ export async function createApp(): Promise<FastifyInstance> {
         },
       },
     },
-    () => getDiceRoll(),
+    () => {
+      const roll = getDiceRoll();
+      return simulateIncident ? roll + 10 : roll;
+    },
+  );
+
+  app.get(
+    '/version',
+    {
+      schema: {
+        summary: 'Identificar la versión desplegada',
+        response: {
+          200: {
+            type: 'object',
+            required: ['version'],
+            properties: { version: { type: 'string' } },
+          },
+        },
+      },
+    },
+    () => ({ version: process.env.APP_VERSION ?? 'dev' }),
+  );
+
+  app.get(
+    '/health',
+    {
+      schema: {
+        summary: 'Comprobar que el servicio responde',
+        response: {
+          200: {
+            type: 'object',
+            required: ['status'],
+            properties: { status: { type: 'string', const: 'ok' } },
+          },
+        },
+      },
+    },
+    () => ({ status: 'ok' }),
   );
 
   return app;

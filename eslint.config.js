@@ -26,7 +26,7 @@ export default tseslint.config(
       },
     },
     rules: {
-      '@typescript-eslint/no-magic-numbers': ['error', { ignore: [1, 6, 10_000] }],
+      '@typescript-eslint/no-magic-numbers': ['error', { ignore: [1, 6, 10, 10_000] }],
     },
   },
   {
