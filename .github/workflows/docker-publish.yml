@@ -4,13 +4,6 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      simulate_incident:
-        description: Build and deploy an intentionally broken demo image
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -38,7 +31,10 @@ jobs:
         run: npm ci
 
       - name: Run all quality checks
-        run: npm run check && npm run build
+        run: npm run check
+
+      - name: Build
+        run: npm run build
 
   publish-and-deploy:
     name: Publish, deploy and verify
@@ -49,8 +45,6 @@ jobs:
       DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
       RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
       BASE_URL: ${{ vars.BASE_URL }}
-      SIMULATE_INCIDENT: ${{ inputs.simulate_incident && '1' || '0' }}
-      IMAGE_SUFFIX: ${{ inputs.simulate_incident && '-incident' || '' }}
 
     steps:
       - name: Check out the commit
@@ -89,10 +83,9 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:sha-${{ github.sha }}${{ env.IMAGE_SUFFIX }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:sha-${{ github.sha }}
           build-args: |
-            APP_VERSION=${{ github.sha }}${{ env.IMAGE_SUFFIX }}
-            DEMO_INCIDENT=${{ env.SIMULATE_INCIDENT }}
+            APP_VERSION=${{ github.sha }}
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -102,7 +95,7 @@ jobs:
       - name: Request Render to deploy this image
         shell: bash
         env:
-          EXPECTED_VERSION: ${{ github.sha }}${{ env.IMAGE_SUFFIX }}
+          EXPECTED_VERSION: ${{ github.sha }}
         run: |
           set -euo pipefail
           image_url="docker.io/${DOCKERHUB_USERNAME}/${DOCKERHUB_REPOSITORY}:sha-${EXPECTED_VERSION}"
@@ -114,7 +107,7 @@ jobs:
       - name: Wait for the expected version and verify the service
         shell: bash
         env:
-          EXPECTED_VERSION: ${{ github.sha }}${{ env.IMAGE_SUFFIX }}
+          EXPECTED_VERSION: ${{ github.sha }}
         run: |
           set -euo pipefail
           matched=false

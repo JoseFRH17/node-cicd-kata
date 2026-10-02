@@ -252,37 +252,37 @@ Pide a cada equipo que enseñe en 30 segundos: URL, SHA bueno, check que prueba 
 
 ## Lista de checks para proyectar
 
-| Etapa | Comando/evidencia | Criterio para avanzar |
-| --- | --- | --- |
-| Herramientas | `node --version`, `docker info` | Node 24+ y Docker accesible |
-| Dependencias | `npm ci` | Instalación limpia |
-| Calidad local | `npm run check` | lint, formato, typecheck y tests verdes |
-| Build | `npm run build` | Compila sin error |
-| App local | `/docs`, `/dice/roll` | HTTP 200; resultado 1–6 |
-| Contenedor | `docker build` + `docker run` | El servicio responde desde el contenedor |
-| CI remota | PR → **Quality checks** | Check verde en la PR |
-| Señales | `/health`, `/version` | JSON estable y versión identificable |
-| Publicación | Docker Hub | Tag SHA disponible |
-| Despliegue | Render + Actions | `/version` coincide con SHA esperado |
-| Smoke test | `/dice/roll` remoto | Entero entre 1 y 6 |
-| Recuperación | workflow rollback | SHA bueno restaurado y tres endpoints OK |
+| Etapa         | Comando/evidencia               | Criterio para avanzar                    |
+| ------------- | ------------------------------- | ---------------------------------------- |
+| Herramientas  | `node --version`, `docker info` | Node 24+ y Docker accesible              |
+| Dependencias  | `npm ci`                        | Instalación limpia                       |
+| Calidad local | `npm run check`                 | lint, formato, typecheck y tests verdes  |
+| Build         | `npm run build`                 | Compila sin error                        |
+| App local     | `/docs`, `/dice/roll`           | HTTP 200; resultado 1–6                  |
+| Contenedor    | `docker build` + `docker run`   | El servicio responde desde el contenedor |
+| CI remota     | PR → **Quality checks**         | Check verde en la PR                     |
+| Señales       | `/health`, `/version`           | JSON estable y versión identificable     |
+| Publicación   | Docker Hub                      | Tag SHA disponible                       |
+| Despliegue    | Render + Actions                | `/version` coincide con SHA esperado     |
+| Smoke test    | `/dice/roll` remoto             | Entero entre 1 y 6                       |
+| Recuperación  | workflow rollback               | SHA bueno restaurado y tres endpoints OK |
 
 ## Si algo falla
 
-| Síntoma | Diagnóstico rápido | Acción durante la sesión |
-| --- | --- | --- |
-| `npm ci` falla | versión de Node, red, lockfile | Confirma Node 24 y acceso al registro; usa la demo mientras el equipo resuelve la red. |
-| `npm run check` falla | el primer script rojo identifica la categoría | Corregir lint/formato/tipos/tests; no saltar a Docker aún. |
-| Docker daemon no disponible | Docker Desktop parado o sin recursos | Iniciar Docker Desktop; si no hay tiempo, el equipo puede avanzar en endpoints y diseño de CD mientras el instructor demuestra el contenedor. |
-| Docker build falla | revisar etapa y salida inicial del error | Corregir antes de hacer push; usar `docker build --no-cache` solo si hay indicios de caché obsoleta. |
-| Push a Hub denegado | usuario, repo, token/permisos | Login con usuario correcto y access token; nunca pedir que lo peguen en el canal. |
-| Render dice `port scan`/no detecta puerto | escuchar en `0.0.0.0`, `PORT=10000`, puerto expuesto | Confirma `PORT=10000`, listener en `0.0.0.0` y Dockerfile/servicio en puerto 10000. |
-| Render health check 404 | imagen inicial no tiene `/health` o está desplegada la imagen vieja | En esta kata, publica primero la solución de endpoint; espera el deploy correcto antes de fijar `/health` como path. |
-| `/version` devuelve SHA anterior | Render sigue arrancando la versión previa o hook apunta a `latest` | Comprueba el deploy y que el hook recibe `imgURL=docker.io/...:sha-<SHA>`. No repitas sin mirar el estado de Render. |
-| Actions manual no muestra workflow | workflow no está en default branch | Usa la rama predeterminada preparada para demo o integra el workflow ahí en el fork de aula. |
-| Actions tarda esperando servicio | Render duerme, hook o URL mal configurados | Revisa `BASE_URL` sin `/` final, el deploy más reciente y logs; dale tiempo al arranque en frío. |
-| Smoke test falla en incidente | comportamiento intencional del ejercicio | Verifica que se haya publicado `-incident`; recupera usando el SHA bueno, no edites el workflow para hacerlo verde. |
-| URL tarda o no responde | instancia gratuita suspendida / despliegue en curso | Haz una petición, espera hasta un minuto y revisa Events/Logs en Render. |
+| Síntoma                                   | Diagnóstico rápido                                                  | Acción durante la sesión                                                                                                                      |
+| ----------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm ci` falla                            | versión de Node, red, lockfile                                      | Confirma Node 24 y acceso al registro; usa la demo mientras el equipo resuelve la red.                                                        |
+| `npm run check` falla                     | el primer script rojo identifica la categoría                       | Corregir lint/formato/tipos/tests; no saltar a Docker aún.                                                                                    |
+| Docker daemon no disponible               | Docker Desktop parado o sin recursos                                | Iniciar Docker Desktop; si no hay tiempo, el equipo puede avanzar en endpoints y diseño de CD mientras el instructor demuestra el contenedor. |
+| Docker build falla                        | revisar etapa y salida inicial del error                            | Corregir antes de hacer push; usar `docker build --no-cache` solo si hay indicios de caché obsoleta.                                          |
+| Push a Hub denegado                       | usuario, repo, token/permisos                                       | Login con usuario correcto y access token; nunca pedir que lo peguen en el canal.                                                             |
+| Render dice `port scan`/no detecta puerto | escuchar en `0.0.0.0`, `PORT=10000`, puerto expuesto                | Confirma `PORT=10000`, listener en `0.0.0.0` y Dockerfile/servicio en puerto 10000.                                                           |
+| Render health check 404                   | imagen inicial no tiene `/health` o está desplegada la imagen vieja | En esta kata, publica primero la solución de endpoint; espera el deploy correcto antes de fijar `/health` como path.                          |
+| `/version` devuelve SHA anterior          | Render sigue arrancando la versión previa o hook apunta a `latest`  | Comprueba el deploy y que el hook recibe `imgURL=docker.io/...:sha-<SHA>`. No repitas sin mirar el estado de Render.                          |
+| Actions manual no muestra workflow        | workflow no está en default branch                                  | Usa la rama predeterminada preparada para demo o integra el workflow ahí en el fork de aula.                                                  |
+| Actions tarda esperando servicio          | Render duerme, hook o URL mal configurados                          | Revisa `BASE_URL` sin `/` final, el deploy más reciente y logs; dale tiempo al arranque en frío.                                              |
+| Smoke test falla en incidente             | comportamiento intencional del ejercicio                            | Verifica que se haya publicado `-incident`; recupera usando el SHA bueno, no edites el workflow para hacerlo verde.                           |
+| URL tarda o no responde                   | instancia gratuita suspendida / despliegue en curso                 | Haz una petición, espera hasta un minuto y revisa Events/Logs en Render.                                                                      |
 
 ## Recorrido corto de 120 minutos
 
